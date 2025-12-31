@@ -8,6 +8,7 @@ An AI-powered fact-checking application that automatically ingests news articles
 - **AI-Powered Claim Extraction**: Uses Ollama LLM to identify verifiable factual claims
 - **Evidence-Based Fact-Checking**: Searches for supporting and refuting evidence using vector similarity
 - **Propaganda Detection**: Identifies manipulation techniques in articles and claims
+- **Analytics Dashboard**: Real-time insights with verdict distribution, quality metrics, and trending claims
 - **Privacy-First**: Automatic PII detection and redaction before storage
 - **Full Transparency**: Shows confidence scores, evidence sources, and reasoning
 - **RESTful API**: Programmatic access with rate limiting
