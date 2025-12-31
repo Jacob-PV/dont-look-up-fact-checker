@@ -13,6 +13,8 @@ from app.models.evidence import Evidence
 from app.services.analysis.claim_extractor import ClaimExtractor
 from app.services.analysis.fact_checker import FactChecker
 from app.services.analysis.influence_scorer import InfluenceScorer
+from app.services.analysis.evidence_searcher import EvidenceSearcher
+from app.services.analysis.propaganda_detector import PropagandaDetector
 import asyncio
 
 # Set up logging
@@ -213,33 +215,77 @@ def fact_check_claim(self, claim_id: str) -> Dict[str, any]:
         claim.status = "checking"
         db.commit()
 
-        # TODO: Implement evidence search
-        # For now, create placeholder investigation with no evidence
-        # In production, you would:
-        # 1. Search for evidence using vector similarity
-        # 2. Retrieve relevant Evidence records
-        # 3. Pass to FactChecker
+        # 1. Search for evidence
+        evidence_searcher = EvidenceSearcher()
+        evidence_data = evidence_searcher.search_evidence_for_claim(claim, db, max_results=5)
 
-        evidence_list: List[Evidence] = []  # Placeholder
-
-        # Fact-check claim (async operation)
+        # 2. Fact-check claim with evidence (async operation)
         checker = FactChecker()
-        investigation = asyncio.run(checker.fact_check_claim(claim, evidence_list, db))
+        investigation = asyncio.run(checker.fact_check_claim(claim, [], db))
 
-        # Save investigation
+        # Save investigation first to get ID
         db.add(investigation)
+        db.flush()  # Get investigation.id without committing
+
+        # 3. Create Evidence records linked to investigation
+        evidence_list: List[Evidence] = []
+        for evidence_item in evidence_data:
+            # Determine stance based on verdict (simple heuristic)
+            stance = _determine_evidence_stance(
+                claim.claim_text,
+                evidence_item['snippet'],
+                investigation.verdict
+            )
+
+            evidence = Evidence(
+                investigation_id=investigation.id,
+                source_url=evidence_item['source_url'],
+                source_name=evidence_item['source_name'],
+                source_reliability=0.7,  # Default reliability, can enhance later
+                snippet=evidence_item['snippet'],
+                context=evidence_item['context'],
+                stance=stance,
+                relevance_score=evidence_item['relevance_score']
+            )
+            evidence_list.append(evidence)
+            db.add(evidence)
+
+        # 4. Detect propaganda in claim text
+        propaganda_detector = PropagandaDetector()
+        propaganda_signals = asyncio.run(propaganda_detector.detect_propaganda(
+            claim.claim_text
+        ))
+
+        # Update investigation with propaganda signals and evidence counts
+        investigation.propaganda_signals = propaganda_signals
+        investigation.evidence_count = len(evidence_list)
+        investigation.supporting_evidence_count = sum(
+            1 for e in evidence_list if e.stance == 'supporting'
+        )
+        investigation.refuting_evidence_count = sum(
+            1 for e in evidence_list if e.stance == 'refuting'
+        )
 
         # Update claim status
         claim.status = "verified"
+
+        # Commit all changes
         db.commit()
 
-        logger.info(f"Fact-checked claim {claim_id}: {investigation.verdict}")
+        logger.info(
+            f"Fact-checked claim {claim_id}: "
+            f"verdict={investigation.verdict}, "
+            f"evidence_count={investigation.evidence_count}, "
+            f"propaganda_score={propaganda_signals.get('overall_propaganda_score', 0.0)}"
+        )
 
         return {
             "success": True,
             "claim_id": claim_id,
             "verdict": investigation.verdict,
-            "confidence": investigation.confidence_score
+            "confidence": investigation.confidence_score,
+            "evidence_count": investigation.evidence_count,
+            "propaganda_score": propaganda_signals.get('overall_propaganda_score', 0.0)
         }
 
     except SQLAlchemyError as e:
@@ -392,3 +438,33 @@ def calculate_article_influence(self, article_id: str) -> Dict[str, any]:
 
     finally:
         db.close()
+
+
+def _determine_evidence_stance(
+    claim_text: str,
+    evidence_snippet: str,
+    verdict: str
+) -> str:
+    """
+    Determine if evidence supports, refutes, or is neutral to claim.
+
+    Simple heuristic based on verdict for MVP.
+    Can enhance with LLM analysis later.
+
+    Args:
+        claim_text: The claim being fact-checked
+        evidence_snippet: Evidence text
+        verdict: Investigation verdict
+
+    Returns:
+        'supporting', 'refuting', or 'neutral'
+    """
+    # Simple heuristic: if verdict is positive, evidence is supporting
+    # If verdict is negative, evidence is refuting
+    # Mixed verdicts have neutral stances
+    if verdict in ['true', 'mostly_true']:
+        return 'supporting'
+    elif verdict in ['false', 'mostly_false']:
+        return 'refuting'
+    else:
+        return 'neutral'
