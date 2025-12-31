@@ -41,7 +41,7 @@ services:
       OLLAMA_API_URL: ${OLLAMA_API_URL:-http://host.docker.internal:11434}
       OLLAMA_MODEL: ${OLLAMA_MODEL:-llama2}
       SECRET_KEY: ${SECRET_KEY:-dev-secret-key}
-      CORS_ORIGINS: http://localhost:3000,http://localhost:80
+      CORS_ORIGINS: http://localhost:3000,http://127.0.0.1:3000,http://frontend:3000
     depends_on:
       postgres:
         condition: service_healthy
@@ -68,6 +68,46 @@ services:
     ports:
       - "3000:3000"
     command: npm start
+
+  celery-worker:
+    build:
+      context: .
+      dockerfile: docker/backend/Dockerfile
+    environment:
+      DATABASE_URL: postgresql://factcheck:${DB_PASSWORD:-changeme}@postgres:5432/factcheck
+      REDIS_URL: redis://redis:6379/0
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/1
+      OLLAMA_API_URL: ${OLLAMA_API_URL:-http://host.docker.internal:11434}
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-llama2}
+      SECRET_KEY: ${SECRET_KEY:-dev-secret-key}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./backend:/app
+    command: celery -A app.tasks.celery_app worker --loglevel=info
+
+  celery-beat:
+    build:
+      context: .
+      dockerfile: docker/backend/Dockerfile
+    environment:
+      DATABASE_URL: postgresql://factcheck:${DB_PASSWORD:-changeme}@postgres:5432/factcheck
+      REDIS_URL: redis://redis:6379/0
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/1
+      SECRET_KEY: ${SECRET_KEY:-dev-secret-key}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./backend:/app
+    command: celery -A app.tasks.celery_app beat --loglevel=info
 
 volumes:
   postgres_data:

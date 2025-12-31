@@ -39,8 +39,8 @@ INITIAL_SOURCES = [
         "source_type": "rss",
         "url": "https://feeds.npr.org/1001/rss.xml",
         "reliability_score": 0.80,
-        "political_bias": "center",
-        "fetch_frequency_minutes": 60,
+        "political_bias": "center-left",
+        "fetch_frequency_minutes": 30,
     },
     {
         "name": "The Guardian",
@@ -48,7 +48,31 @@ INITIAL_SOURCES = [
         "url": "https://www.theguardian.com/world/rss",
         "reliability_score": 0.78,
         "political_bias": "left",
-        "fetch_frequency_minutes": 60,
+        "fetch_frequency_minutes": 30,
+    },
+    {
+        "name": "CNN",
+        "source_type": "rss",
+        "url": "http://rss.cnn.com/rss/cnn_topstories.rss",
+        "reliability_score": 0.75,
+        "political_bias": "center-left",
+        "fetch_frequency_minutes": 30,
+    },
+    {
+        "name": "Fox News",
+        "source_type": "rss",
+        "url": "https://moxie.foxnews.com/google-publisher/latest.xml",
+        "reliability_score": 0.70,
+        "political_bias": "right",
+        "fetch_frequency_minutes": 30,
+    },
+    {
+        "name": "Wall Street Journal",
+        "source_type": "rss",
+        "url": "https://feeds.a.dj.com/rss/RSSWorldNews.xml",
+        "reliability_score": 0.83,
+        "political_bias": "center-right",
+        "fetch_frequency_minutes": 30,
     },
 ]
 

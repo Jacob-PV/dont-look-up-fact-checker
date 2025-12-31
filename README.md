@@ -207,19 +207,57 @@ npm test
 
 The application uses Celery for background processing:
 
-- **News Ingestion**: Fetches new articles every 30 minutes
-- **Claim Extraction**: Processes pending articles every 5 minutes
-- **Fact-Checking**: Verifies extracted claims continuously
+- **RSS Ingestion**: Automatically fetches new articles from RSS feeds every 30 minutes
+- **Claim Extraction**: Processes pending articles every 5 minutes (planned)
+- **Fact-Checking**: Verifies extracted claims continuously (planned)
 
-To run Celery worker (in development):
+### RSS Feed Ingestion
 
+The application automatically ingests articles from configured RSS news sources using Celery Beat scheduler:
+
+**How It Works:**
+1. Celery Beat triggers the RSS fetch task every 30 minutes
+2. The system queries all active RSS sources from the database
+3. For each source, articles are fetched in parallel using Celery workers
+4. Articles are deduplicated by URL to prevent duplicates
+5. Content is automatically redacted for PII before storage
+6. Source `last_fetched_at` timestamps are updated
+
+**Manual Testing:**
+
+Seed RSS sources:
 ```bash
-celery -A app.tasks.celery_app worker --loglevel=info
+docker-compose exec backend python scripts/seed_sources.py
 ```
 
-To run Celery beat scheduler:
+Manually trigger RSS fetch (for testing):
+```bash
+docker-compose exec backend python -c "from app.tasks.rss_tasks import fetch_all_rss_feeds; fetch_all_rss_feeds.delay()"
+```
+
+View Celery logs:
+```bash
+# Worker logs
+docker-compose logs -f celery-worker
+
+# Beat scheduler logs
+docker-compose logs -f celery-beat
+```
+
+Verify articles in database:
+```bash
+docker-compose exec backend python -c "from app.db.session import SessionLocal; from app.models import Article; db = SessionLocal(); print(f'Total articles: {db.query(Article).count()}'); db.close()"
+```
+
+**Running Celery in Development:**
+
+The Celery worker and beat scheduler are automatically started with `docker-compose up`. To run manually:
 
 ```bash
+# Worker
+celery -A app.tasks.celery_app worker --loglevel=info
+
+# Beat scheduler
 celery -A app.tasks.celery_app beat --loglevel=info
 ```
 
