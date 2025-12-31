@@ -24,7 +24,7 @@ class Investigation(Base):
     supporting_evidence_count = Column(Integer, default=0)
     refuting_evidence_count = Column(Integer, default=0)
     status = Column(String(50), default="in_progress")  # 'in_progress', 'completed', 'error'
-    metadata = Column(JSONB, default=dict)
+    extra_metadata = Column(JSONB, default=dict)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 

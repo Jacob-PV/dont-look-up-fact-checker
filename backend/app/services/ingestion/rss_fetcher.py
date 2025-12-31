@@ -11,6 +11,7 @@ from sqlalchemy.exc import IntegrityError
 
 from app.models.source import NewsSource
 from app.models.article import Article
+from app.services.analysis.influence_scorer import InfluenceScorer
 
 # Set up logging
 logger = logging.getLogger(__name__)
@@ -200,6 +201,10 @@ def fetch_and_store_articles(source: NewsSource, db: Session) -> int:
                     content_hash=content_hash,
                     status="pending"
                 )
+
+                # Calculate and set influence score
+                scorer = InfluenceScorer()
+                new_article.influence_score = scorer.calculate_influence_score(new_article, source)
 
                 db.add(new_article)
                 new_articles_count += 1

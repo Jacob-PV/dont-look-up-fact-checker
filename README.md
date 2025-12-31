@@ -43,7 +43,33 @@ An AI-powered fact-checking application that automatically ingests news articles
 - Docker and Docker Compose
 - Ollama running locally (for LLM inference)
 
-### Installation
+### Easy Setup (Recommended)
+
+The fastest way to get started is using the automated startup scripts:
+
+**Windows:**
+```bash
+startup.bat
+```
+
+**Linux/Mac:**
+```bash
+./startup.sh
+```
+
+This will automatically:
+1. Create .env from template if needed
+2. Build and start all Docker services
+3. Run database migrations
+4. Seed RSS news sources
+5. Start RSS ingestion (automatic every 30 minutes)
+
+**To shut down:**
+
+Windows: `shutdown.bat`
+Linux/Mac: `./shutdown.sh`
+
+### Manual Installation
 
 1. **Clone the repository**
    ```bash
@@ -208,8 +234,10 @@ npm test
 The application uses Celery for background processing:
 
 - **RSS Ingestion**: Automatically fetches new articles from RSS feeds every 30 minutes
-- **Claim Extraction**: Processes pending articles every 5 minutes (planned)
-- **Fact-Checking**: Verifies extracted claims continuously (planned)
+- **Claim Extraction**: Processes pending articles every 5 minutes, extracting verifiable claims using Ollama LLM
+- **Fact-Checking**: Verifies extracted claims every 10 minutes using evidence analysis and Ollama LLM
+- **Influence Scoring**: Automatically calculates U.S. politics influence scores (0.0-1.0) for all ingested articles
+- **Priority Queue**: Articles with higher political influence are prioritized for faster claim extraction and fact-checking
 
 ### RSS Feed Ingestion
 
@@ -221,7 +249,42 @@ The application automatically ingests articles from configured RSS news sources 
 3. For each source, articles are fetched in parallel using Celery workers
 4. Articles are deduplicated by URL to prevent duplicates
 5. Content is automatically redacted for PII before storage
-6. Source `last_fetched_at` timestamps are updated
+6. U.S. politics influence score (0.0-1.0) is calculated for each article
+7. Source `last_fetched_at` timestamps are updated
+
+### Claim Extraction
+
+The application automatically extracts verifiable claims from pending articles:
+
+**How It Works:**
+1. Celery Beat triggers claim extraction every 5 minutes
+2. Pending articles are fetched in priority order (highest influence score first)
+3. Each article is processed using Ollama LLM with claim extraction prompts
+4. Verifiable claims are extracted and stored with confidence scores
+5. Article status is updated: pending -> processing -> processed
+6. Claims are marked as pending for fact-checking
+
+**Priority Queue:**
+- Articles with higher political influence scores are processed first
+- Ensures politically significant news is fact-checked faster
+- Influence scoring considers source credibility, political keyword density, and title relevance
+
+### Fact-Checking
+
+The application automatically fact-checks extracted claims:
+
+**How It Works:**
+1. Celery Beat triggers fact-checking every 10 minutes
+2. Pending claims are fetched in priority order (from high-influence articles first)
+3. Each claim is analyzed using Ollama LLM with fact-checking prompts
+4. Investigations are created with verdicts (true, mostly_true, mixed, mostly_false, false, unverifiable)
+5. Claim status is updated: pending -> checking -> verified
+6. Confidence scores and reasoning are stored
+
+**Status Workflow:**
+- Article: pending -> processing -> processed -> verified
+- Claim: pending -> checking -> verified
+- Investigation: in_progress -> completed
 
 **Manual Testing:**
 
@@ -247,6 +310,21 @@ docker-compose logs -f celery-beat
 Verify articles in database:
 ```bash
 docker-compose exec backend python -c "from app.db.session import SessionLocal; from app.models import Article; db = SessionLocal(); print(f'Total articles: {db.query(Article).count()}'); db.close()"
+```
+
+Test claim extraction manually:
+```bash
+docker-compose exec backend python -c "from app.tasks.claim_tasks import process_pending_articles; process_pending_articles.delay()"
+```
+
+Test fact-checking manually:
+```bash
+docker-compose exec backend python -c "from app.tasks.claim_tasks import process_pending_claims; process_pending_claims.delay()"
+```
+
+Calculate influence score for an article:
+```bash
+docker-compose exec backend python -c "from app.tasks.claim_tasks import calculate_article_influence; from app.models import Article; from app.db.session import SessionLocal; db = SessionLocal(); article = db.query(Article).first(); if article: result = calculate_article_influence(str(article.id)); print(result); db.close()"
 ```
 
 **Running Celery in Development:**

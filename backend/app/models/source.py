@@ -21,7 +21,7 @@ class NewsSource(Base):
     is_active = Column(Boolean, default=True)
     fetch_frequency_minutes = Column(Integer, default=60)
     last_fetched_at = Column(DateTime, nullable=True)
-    metadata = Column(JSONB, default=dict)
+    source_metadata = Column(JSONB, default=dict)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 

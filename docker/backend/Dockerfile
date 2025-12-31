@@ -13,11 +13,11 @@ RUN apt-get update && apt-get install -y \
 COPY backend/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Download spaCy model
-RUN python -m spacy download en_core_web_sm
-
 # Copy application code
 COPY backend/ .
+
+# Copy scripts directory
+COPY scripts/ /app/scripts/
 
 # Create FAISS index directory
 RUN mkdir -p /app/faiss_index

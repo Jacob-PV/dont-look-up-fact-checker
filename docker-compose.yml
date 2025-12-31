@@ -49,6 +49,7 @@ services:
         condition: service_healthy
     volumes:
       - ./backend:/app
+      - ./scripts:/app/scripts
       - faiss_index:/app/faiss_index
     ports:
       - "8000:8000"
@@ -88,6 +89,7 @@ services:
         condition: service_healthy
     volumes:
       - ./backend:/app
+      - ./scripts:/app/scripts
     command: celery -A app.tasks.celery_app worker --loglevel=info
 
   celery-beat:
@@ -107,6 +109,7 @@ services:
         condition: service_healthy
     volumes:
       - ./backend:/app
+      - ./scripts:/app/scripts
     command: celery -A app.tasks.celery_app beat --loglevel=info
 
 volumes:

@@ -20,7 +20,7 @@ class APIKey(Base):
     usage_count = Column(Integer, default=0)
     last_used_at = Column(DateTime)
     expires_at = Column(DateTime)
-    metadata = Column(JSONB, default=dict)
+    extra_metadata = Column(JSONB, default=dict)
     created_at = Column(DateTime, default=datetime.utcnow)
 
     def __repr__(self):

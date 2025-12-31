@@ -3,8 +3,18 @@
 import sys
 import os
 
-# Add parent directory to path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'backend'))
+# Add parent directory to path (works both from host and Docker container)
+current_dir = os.path.dirname(os.path.abspath(__file__))
+parent_dir = os.path.dirname(current_dir)
+
+# If running from Docker, /app is the backend root
+# If running from host, need to go to ../backend
+if os.path.exists('/app/app'):
+    # Running in Docker container
+    sys.path.insert(0, '/app')
+else:
+    # Running on host
+    sys.path.insert(0, os.path.join(parent_dir, 'backend'))
 
 from app.db.session import SessionLocal
 from app.models import NewsSource

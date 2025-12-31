@@ -20,7 +20,7 @@ class Claim(Base):
     is_checkable = Column(Boolean, default=True)
     extraction_confidence = Column(Float)  # 0.0 to 1.0
     status = Column(String(50), default="pending")  # 'pending', 'checking', 'verified', 'error'
-    metadata = Column(JSONB, default=dict)
+    extra_metadata = Column(JSONB, default=dict)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 

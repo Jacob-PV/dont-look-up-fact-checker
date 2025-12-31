@@ -23,7 +23,7 @@ class Evidence(Base):
     relevance_score = Column(Float)  # 0.0 to 1.0
     published_at = Column(DateTime)
     embedding_id = Column(String(255))  # Reference to FAISS index
-    metadata = Column(JSONB, default=dict)
+    extra_metadata = Column(JSONB, default=dict)
     created_at = Column(DateTime, default=datetime.utcnow)
 
     # Relationships

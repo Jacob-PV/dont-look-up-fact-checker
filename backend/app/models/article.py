@@ -1,7 +1,7 @@
 """Article database model."""
 import uuid
 from datetime import datetime
-from sqlalchemy import Column, String, DateTime, Text, ForeignKey, Index
+from sqlalchemy import Column, String, DateTime, Text, Float, ForeignKey, Index
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import relationship
 from app.db.base import Base
@@ -20,8 +20,9 @@ class Article(Base):
     published_at = Column(DateTime)
     content = Column(Text)  # Full article text (PII redacted)
     content_hash = Column(String(64))  # SHA-256 hash for deduplication
-    status = Column(String(50), default="pending")  # 'pending', 'processing', 'analyzed', 'error'
-    metadata = Column(JSONB, default=dict)
+    influence_score = Column(Float, default=0.0)  # U.S. politics influence score (0.0-1.0)
+    status = Column(String(50), default="pending")  # 'pending', 'processing', 'processed', 'verified', 'error'
+    extra_metadata = Column(JSONB, default=dict)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -36,6 +37,7 @@ class Article(Base):
         Index("ix_articles_status", "status"),
         Index("ix_articles_hash", "content_hash"),
         Index("ix_articles_url", "url"),
+        Index("ix_articles_influence", "influence_score"),
     )
 
     def __repr__(self):

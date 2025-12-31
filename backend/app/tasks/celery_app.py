@@ -12,7 +12,7 @@ celery_app = Celery(
     "factcheck",
     broker=CELERY_BROKER_URL,
     backend=CELERY_RESULT_BACKEND,
-    include=["app.tasks.rss_tasks"]
+    include=["app.tasks.rss_tasks", "app.tasks.claim_tasks"]
 )
 
 # Celery configuration
@@ -35,6 +35,16 @@ celery_app.conf.beat_schedule = {
         "task": "app.tasks.rss_tasks.fetch_all_rss_feeds",
         "schedule": crontab(minute="*/30"),  # Every 30 minutes
         "options": {"queue": "rss_ingestion"}
+    },
+    "extract-claims-every-5-minutes": {
+        "task": "app.tasks.claim_tasks.process_pending_articles",
+        "schedule": crontab(minute="*/5"),  # Every 5 minutes
+        "options": {"queue": "claim_extraction"}
+    },
+    "fact-check-claims-every-10-minutes": {
+        "task": "app.tasks.claim_tasks.process_pending_claims",
+        "schedule": crontab(minute="*/10"),  # Every 10 minutes
+        "options": {"queue": "fact_checking"}
     },
 }
 
