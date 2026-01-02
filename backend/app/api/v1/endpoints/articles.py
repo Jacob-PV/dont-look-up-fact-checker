@@ -1,10 +1,10 @@
 """Article endpoints."""
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from sqlalchemy import func
+from sqlalchemy import func, case
 from typing import Optional
 from app.db.session import get_db
-from app.models import Article, Claim, NewsSource
+from app.models import Article, Claim, NewsSource, Investigation
 from app.schemas.article import ArticleResponse, ArticleDetailResponse
 from app.schemas.common import PaginatedResponse
 
@@ -20,11 +20,27 @@ async def list_articles(
     db: Session = Depends(get_db)
 ):
     """List articles with pagination."""
+    # Subquery to count completed investigations per article
+    investigation_count = (
+        db.query(
+            Article.id.label("article_id"),
+            func.count(Investigation.id).label("investigation_count")
+        )
+        .outerjoin(Claim, Claim.article_id == Article.id)
+        .outerjoin(Investigation, Investigation.claim_id == Claim.id)
+        .filter(Investigation.status == "completed")
+        .group_by(Article.id)
+        .subquery()
+    )
+
     query = db.query(
         Article,
         NewsSource.name.label("source_name"),
-        func.count(Claim.id).label("claim_count")
-    ).outerjoin(NewsSource).outerjoin(Claim).group_by(Article.id, NewsSource.name)
+        func.count(Claim.id).label("claim_count"),
+        func.coalesce(investigation_count.c.investigation_count, 0).label("investigation_count")
+    ).outerjoin(NewsSource).outerjoin(Claim).outerjoin(
+        investigation_count, investigation_count.c.article_id == Article.id
+    ).group_by(Article.id, NewsSource.name, investigation_count.c.investigation_count)
 
     if source_id:
         query = query.filter(Article.source_id == source_id)
@@ -32,13 +48,18 @@ async def list_articles(
         query = query.filter(Article.status == status)
 
     total = query.count()
-    results = query.order_by(Article.created_at.desc()).offset(offset).limit(limit).all()
+    # Sort by investigation count (DESC) first, then by created_at (DESC)
+    results = query.order_by(
+        func.coalesce(investigation_count.c.investigation_count, 0).desc(),
+        Article.created_at.desc()
+    ).offset(offset).limit(limit).all()
 
     items = []
-    for article, source_name, claim_count in results:
+    for article, source_name, claim_count, investigation_count in results:
         article_dict = ArticleResponse.model_validate(article).model_dump()
         article_dict["source_name"] = source_name
         article_dict["claim_count"] = claim_count
+        article_dict["investigation_count"] = investigation_count
         items.append(article_dict)
 
     return {

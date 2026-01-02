@@ -43,6 +43,18 @@ class PIIDetector:
 class PIIRedactor:
     """Redact PII from text."""
 
+    # Map NER entity types to user-friendly labels
+    ENTITY_LABEL_MAP = {
+        "GPE": "Location",
+        "PERSON": "Name",
+        "ORG": "Organization",
+        "EMAIL": "Email",
+        "PHONE": "Phone Number",
+        "DATE": "Date",
+        "MONEY": "Amount",
+        "CARDINAL": "Number"
+    }
+
     def __init__(self):
         self.detector = PIIDetector()
 
@@ -58,7 +70,9 @@ class PIIRedactor:
 
         redacted_text = text
         for entity in entities_sorted:
-            placeholder = f"[{entity['label']}]"
+            # Use friendly label if available, otherwise use original
+            friendly_label = self.ENTITY_LABEL_MAP.get(entity['label'], entity['label'])
+            placeholder = f"[{friendly_label}]"
             redacted_text = (
                 redacted_text[:entity["start"]] +
                 placeholder +

@@ -42,7 +42,7 @@ export const InvestigationCard: React.FC<InvestigationCardProps> = ({
           onClick?.();
         }
       }}
-      aria-label={`Investigation: ${investigation.claim?.claim_text || 'Unknown claim'}. Verdict: ${verdictLabel}. Confidence: ${Math.round(investigation.confidence_score * 100)}%`}
+      aria-label={`Investigation: ${investigation.claim_text || 'Unknown claim'}. Verdict: ${verdictLabel}. Confidence: ${Math.round(investigation.confidence_score * 100)}%`}
     >
       {/* Status Badge */}
       {investigation.status === 'in_progress' && (
@@ -62,7 +62,7 @@ export const InvestigationCard: React.FC<InvestigationCardProps> = ({
 
       {/* Claim Text */}
       <p className="text-gray-900 font-medium mb-3 line-clamp-3">
-        {investigation.claim?.claim_text || 'No claim text available'}
+        {investigation.claim_text || 'No claim text available'}
       </p>
 
       {/* Summary */}

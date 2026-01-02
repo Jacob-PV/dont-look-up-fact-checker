@@ -70,9 +70,24 @@ export const InvestigationDetail: React.FC<InvestigationDetailProps> = ({
           <div className="mb-6">
             <h3 className="text-lg font-semibold mb-2">Claim</h3>
             <p className="text-gray-900">
-              {investigation.claim?.claim_text || 'No claim text available'}
+              {investigation.claim_text || 'No claim text available'}
             </p>
           </div>
+
+          {/* Article Source */}
+          {investigation.article_url && investigation.article_title && (
+            <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <h3 className="text-sm font-semibold mb-2 text-blue-900">Source Article</h3>
+              <a
+                href={investigation.article_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-700 hover:text-blue-900 hover:underline"
+              >
+                {investigation.article_title}
+              </a>
+            </div>
+          )}
 
           {/* Verdict and Confidence */}
           <div className="grid md:grid-cols-2 gap-6 mb-6">
@@ -105,12 +120,52 @@ export const InvestigationDetail: React.FC<InvestigationDetailProps> = ({
             </p>
           </div>
 
-          {/* Evidence */}
+          {/* What's Actually True - for false/partial verdicts */}
+          {(investigation.verdict === 'false' ||
+            investigation.verdict === 'mostly_false' ||
+            investigation.verdict === 'mixed') &&
+           investigation.evidence &&
+           investigation.evidence.some(e => e.stance === 'supporting') && (
+            <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+              <h3 className="text-lg font-semibold mb-3 text-green-900">
+                What's Actually True
+              </h3>
+              <p className="text-sm text-green-800 mb-3">
+                While the claim as stated is {investigation.verdict === 'false' ? 'false' : 'not entirely accurate'},
+                some related facts are supported by evidence:
+              </p>
+              <div className="space-y-3">
+                {investigation.evidence
+                  .filter(e => e.stance === 'supporting')
+                  .slice(0, 3)
+                  .map((evidence) => (
+                    <div key={evidence.id} className="bg-white rounded p-3 border border-green-300">
+                      <p className="text-sm text-gray-700 mb-2">
+                        "{evidence.snippet}"
+                      </p>
+                      <a
+                        href={evidence.source_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-green-700 hover:underline"
+                      >
+                        Source: {evidence.source_name}
+                      </a>
+                    </div>
+                  ))}
+              </div>
+            </div>
+          )}
+
+          {/* Evidence - Why We Determined This */}
           {investigation.evidence && investigation.evidence.length > 0 && (
             <div className="mb-6">
-              <h3 className="text-lg font-semibold mb-4">
-                Evidence ({investigation.evidence.length})
+              <h3 className="text-lg font-semibold mb-2">
+                Why We Determined This Verdict
               </h3>
+              <p className="text-sm text-gray-600 mb-4">
+                Based on {investigation.evidence.length} sources of evidence
+              </p>
 
               <div className="space-y-4">
                 {investigation.evidence.map((evidence) => (

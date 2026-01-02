@@ -1,7 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { InvestigationsResponse, Investigation } from '../types/investigation';
-
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000/api/v1';
+import { getInvestigations, getInvestigation } from '../api/investigations';
 
 interface UseInvestigationsParams {
   limit?: number;
@@ -20,28 +19,12 @@ export function useInvestigations(params: UseInvestigationsParams = {}) {
 
   return useQuery<InvestigationsResponse>({
     queryKey: ['investigations', limit, offset, verdict, minConfidence],
-    queryFn: async () => {
-      const searchParams = new URLSearchParams({
-        limit: limit.toString(),
-        offset: offset.toString(),
-      });
-
-      if (verdict) {
-        searchParams.append('verdict', verdict);
-      }
-
-      if (minConfidence !== undefined) {
-        searchParams.append('min_confidence', minConfidence.toString());
-      }
-
-      const response = await fetch(`${API_URL}/investigations?${searchParams}`);
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch investigations');
-      }
-
-      return response.json();
-    },
+    queryFn: () => getInvestigations({
+      limit,
+      offset,
+      verdict,
+      min_confidence: minConfidence
+    }),
     staleTime: 30000, // 30 seconds
     refetchInterval: 60000, // Refetch every minute for real-time updates
   });
@@ -50,15 +33,7 @@ export function useInvestigations(params: UseInvestigationsParams = {}) {
 export function useInvestigation(id: string) {
   return useQuery<Investigation>({
     queryKey: ['investigation', id],
-    queryFn: async () => {
-      const response = await fetch(`${API_URL}/investigations/${id}`);
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch investigation');
-      }
-
-      return response.json();
-    },
+    queryFn: () => getInvestigation(id),
     enabled: !!id,
   });
 }

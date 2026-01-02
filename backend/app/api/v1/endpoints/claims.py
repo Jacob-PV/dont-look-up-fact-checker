@@ -1,11 +1,12 @@
 """Claim endpoints."""
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from typing import Optional
 from app.db.session import get_db
 from app.models import Claim, Article, Investigation
 from app.schemas.claim import ClaimResponse, ClaimDetailResponse
 from app.schemas.common import PaginatedResponse
+from app.core.exceptions import NotFoundError
 
 router = APIRouter()
 
@@ -42,7 +43,7 @@ async def get_claim(claim_id: str, db: Session = Depends(get_db)):
     """Get claim details with investigation."""
     claim = db.query(Claim).filter(Claim.id == claim_id).first()
     if not claim:
-        raise HTTPException(status_code=404, detail="Claim not found")
+        raise NotFoundError(resource="Claim", resource_id=claim_id)
 
     # Get article title
     article = db.query(Article).filter(Article.id == claim.article_id).first()

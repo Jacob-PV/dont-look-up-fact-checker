@@ -30,6 +30,10 @@ class InvestigationResponse(InvestigationBase):
     status: str
     created_at: datetime
     updated_at: datetime
+    # Article information
+    article_id: Optional[str] = None
+    article_title: Optional[str] = None
+    article_url: Optional[str] = None
 
     class Config:
         from_attributes = True

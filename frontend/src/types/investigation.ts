@@ -13,22 +13,27 @@ export interface Investigation {
   status: 'in_progress' | 'completed' | 'error';
   created_at: string;
   updated_at: string;
-  claim?: Claim;
+  claim_text?: string;  // Direct property from API
+  claim?: Claim;  // Keep for backward compatibility
   evidence?: Evidence[];
+  // Article information
+  article_id?: string;
+  article_title?: string;
+  article_url?: string;
 }
 
 export interface Evidence {
   id: string;
-  investigation_id: string;
+  investigation_id?: string;
   source_url: string;
   source_name: string;
   source_reliability: number;
   snippet: string;
-  context: string;
+  context?: string;
   stance: 'supporting' | 'refuting' | 'neutral';
   relevance_score: number;
   published_at?: string;
-  created_at: string;
+  created_at?: string;
 }
 
 export interface PropagandaSignals {
